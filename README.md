@@ -8,6 +8,9 @@ A poster wall for Home Assistant, backed by the built-in **todo** integration.
 Films and shows with artwork, synopsis, IMDb / TMDB / Rotten Tomatoes ratings
 and "where to stream" — added by searching from inside the card.
 
+> This card was made with the help of AI. The idea was a simple yet good-looking
+> watchlist to use for my family.
+
 ![The watchlist grid](https://raw.githubusercontent.com/PhotonSpheres/Watchlist-Card/main/images/grid.png)
 
 ---
@@ -84,11 +87,11 @@ picked can't store descriptions.
 
 ### 2. Get the two API keys
 
-Both are free and take about two minutes.
+Both are free and take about two minutes. For TMDB a free account is required.
 
 | Key | Where | Notes |
 |---|---|---|
-| **TMDB** | [themoviedb.org](https://www.themoviedb.org/settings/api) → Settings → API → request a Developer key | Copy the 32-character **API Key (v3 auth)**, *not* the long v4 Bearer token |
+| **TMDB** | [themoviedb.org](https://www.themoviedb.org/settings/api) → Account/Settings → API → request a key | Copy the 32-character **API Key (v3 auth)**, *not* the long v4 Bearer token, while requesting a key, TMDB asks for the nature of the project, I added the link to this repo |
 | **OMDb** | [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) → FREE tier | You must click the activation link in the confirmation email, or every call returns an error |
 
 TMDB supplies search, artwork and metadata. OMDb supplies the IMDb rating
@@ -176,8 +179,8 @@ and re-add it from search.
 
 They live in the dashboard configuration, which means anyone who can view that
 dashboard can read them. Both are read-only keys for public film data with no
-account access, so the practical risk is somebody using up your OMDb quota.
-Worth knowing, not worth losing sleep over.
+account access, so the practical risk is somebody using up your OMDb quota or
+misusing your TMDB key as it is only for your personal use.
 
 ---
 
