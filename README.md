@@ -11,7 +11,7 @@ and "where to stream" — added by searching from inside the card.
 > This card was made with the help of AI. The idea was a simple yet good-looking
 > watchlist to use for my family.
 
-![The watchlist grid](https://raw.githubusercontent.com/PhotonSpheres/Watchlist-Card/main/images/grid.png)
+![The watchlist grid](https://raw.githubusercontent.com/PhotonSpheres/watchlist-card/main/images/grid.png)
 
 ---
 
@@ -33,7 +33,7 @@ the network is only touched while searching, adding, or refreshing a title.
 
 | Detail sheet | Search |
 |---|---|
-| ![Detail sheet](https://raw.githubusercontent.com/PhotonSpheres/Watchlist-Card/main/images/detail.png) | ![Search](https://raw.githubusercontent.com/PhotonSpheres/Watchlist-Card/main/images/search.png) |
+| ![Detail sheet](https://raw.githubusercontent.com/PhotonSpheres/watchlist-card/main/images/detail.png) | ![Search](https://raw.githubusercontent.com/PhotonSpheres/watchlist-card/main/images/search.png) |
 
 ---
 
@@ -43,10 +43,10 @@ the network is only touched while searching, adding, or refreshing a title.
 
 The card is not in the default HACS store yet, so add it as a custom repository:
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=PhotonSpheres&repository=Watchlist-Card&category=plugin)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=PhotonSpheres&repository=watchlist-card&category=plugin)
 
 Or by hand: **HACS** → ⋮ (top right) → **Custom repositories** → paste
-`https://github.com/PhotonSpheres/Watchlist-Card`, type **Dashboard** → **Add**.
+`https://github.com/PhotonSpheres/watchlist-card`, type **Dashboard** → **Add**.
 Then find *Watchlist Card* in HACS and **Download**.
 
 HACS registers the Lovelace resource for you if your dashboards are in storage
@@ -55,7 +55,7 @@ mode (the default). If you manage Lovelace in YAML, add it yourself:
 ```yaml
 lovelace:
   resources:
-    - url: /hacsfiles/Watchlist-Card/watchlist-card.js
+    - url: /hacsfiles/watchlist-card/watchlist-card.js
       type: module
 ```
 
@@ -192,6 +192,6 @@ Ratings data from [OMDb](https://www.omdbapi.com/). Released under the
 
 [hacs-url]: https://github.com/hacs/integration
 [hacs-badge]: https://img.shields.io/badge/HACS-custom-41BDF5.svg?style=for-the-badge
-[release-url]: https://github.com/PhotonSpheres/Watchlist-Card/releases
-[release-badge]: https://img.shields.io/github/v/release/PhotonSpheres/Watchlist-Card?style=for-the-badge
-[license-badge]: https://img.shields.io/github/license/PhotonSpheres/Watchlist-Card?style=for-the-badge
+[release-url]: https://github.com/PhotonSpheres/watchlist-card/releases
+[release-badge]: https://img.shields.io/github/v/release/PhotonSpheres/watchlist-card?style=for-the-badge
+[license-badge]: https://img.shields.io/github/license/PhotonSpheres/watchlist-card?style=for-the-badge

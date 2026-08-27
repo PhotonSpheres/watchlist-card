@@ -11,7 +11,7 @@
  * This product uses the TMDB API but is not endorsed or certified by TMDB.
  */
 
-const WL_VERSION = "1.0.0";
+const WL_VERSION = "0.1.0";
 const WL_MARK = "#wl#";                       // marker line holding the JSON blob
 const TMDB_API = "https://api.themoviedb.org/3";
 const TMDB_IMG = "https://image.tmdb.org/t/p";
