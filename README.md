@@ -150,8 +150,6 @@ language: en-US
 - The header shows how many are queued and roughly how long they'd take to
   watch (episode runtime × episode count for series).
 
-<img src="https://raw.githubusercontent.com/PhotonSpheres/Watchlist-Card/main/images/mobile.png" width="360" alt="On a phone">
-
 ---
 
 ## Troubleshooting
