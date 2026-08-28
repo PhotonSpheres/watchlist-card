@@ -17,10 +17,6 @@ const TMDB_API = "https://api.themoviedb.org/3";
 const TMDB_IMG = "https://image.tmdb.org/t/p";
 const OMDB_API = "https://www.omdbapi.com/";
 
-// mdi:dice-5 — the "surprise me" button
-const WL_DICE =
-  "M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M7,7A1.5,1.5 0 0,1 8.5,5.5A1.5,1.5 0 0,1 10,7A1.5,1.5 0 0,1 8.5,8.5A1.5,1.5 0 0,1 7,7M8.5,18.5A1.5,1.5 0 0,1 7,17A1.5,1.5 0 0,1 8.5,15.5A1.5,1.5 0 0,1 10,17A1.5,1.5 0 0,1 8.5,18.5M10.5,12A1.5,1.5 0 0,1 12,10.5A1.5,1.5 0 0,1 13.5,12A1.5,1.5 0 0,1 12,13.5A1.5,1.5 0 0,1 10.5,12M15.5,5.5A1.5,1.5 0 0,1 17,7A1.5,1.5 0 0,1 15.5,8.5A1.5,1.5 0 0,1 14,7A1.5,1.5 0 0,1 15.5,5.5M15.5,18.5A1.5,1.5 0 0,1 14,17A1.5,1.5 0 0,1 15.5,15.5A1.5,1.5 0 0,1 17,17A1.5,1.5 0 0,1 15.5,18.5Z";
-
 /* ------------------------------------------------------------------ utils */
 
 const esc = (s) =>
@@ -378,19 +374,6 @@ const WL_STYLE = `
           border:2px solid var(--divider-color);
           border-top-color:var(--primary-color); animation:wlspin .8s linear infinite; }
   @keyframes wlspin { to { transform:rotate(360deg); } }
-  .roll { text-align:center; }
-  .rollart { width:min(190px,52vw); aspect-ratio:2/3; margin:2px auto 14px;
-             border-radius:12px; overflow:hidden; position:relative;
-             background:var(--secondary-background-color);
-             box-shadow:0 6px 20px rgba(0,0,0,.35); }
-  .rollart img { width:100%; height:100%; object-fit:cover; display:block; }
-  .rolling .rollart { animation:wlwob .42s ease-in-out infinite; }
-  @keyframes wlwob { 0%,100% { transform:rotate(-1.4deg) } 50% { transform:rotate(1.4deg) } }
-  .rolltitle { font-size:19px; font-weight:600; line-height:1.25; margin:0 0 4px;
-               min-height:23px; }
-  .rollsub { font-size:13px; color:var(--secondary-text-color); margin:0 0 16px;
-             min-height:17px; }
-  .roll .acts { justify-content:center; }
   @media (max-width:500px) { .body { padding:0 15px 16px; } }
 `;
 
@@ -416,8 +399,6 @@ class WatchlistCard extends HTMLElement {
     this._unsub = null;
     this._built = false;
     this._busy = new Set();
-    this._rollTimer = null;
-    this._lastRoll = null;
   }
 
   static getConfigElement() {
@@ -453,7 +434,6 @@ class WatchlistCard extends HTMLElement {
       default_sort: "added_desc",
       show_watched_tab: true,
       show_genre_filter: true,
-      show_random_button: true,
       show_providers: true,
       rename_on_lookup: true,
       ...config,
@@ -614,7 +594,6 @@ class WatchlistCard extends HTMLElement {
       this._renderHead(); this._renderGrid();
     });
     dlg.addEventListener("click", (ev) => { if (ev.target === dlg) dlg.close(); });
-    dlg.addEventListener("close", () => this._stopRoll());
     this._built = true;
     this._renderHead();
     this._renderGrid();
@@ -648,18 +627,10 @@ class WatchlistCard extends HTMLElement {
     this._el.head.innerHTML =
       `<div class="titles"><div class="title">${esc(this._listName())}</div>` +
       `<div class="sub">${esc(sub)}</div></div>` +
-      (this._config.show_random_button
-        ? '<button class="iconbtn" id="roll" title="Surprise me" ' +
-          'aria-label="Pick something at random">' +
-          '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">' +
-          `<path fill="currentColor" d="${WL_DICE}"/></svg></button>`
-        : "") +
       `<button class="iconbtn primary" id="add" title="Add a title" aria-label="Add a title">` +
       '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">' +
       '<path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>';
     this._el.head.querySelector("#add").onclick = () => this._openSearch();
-    const rollBtn = this._el.head.querySelector("#roll");
-    if (rollBtn) rollBtn.onclick = () => this._openRandom();
 
     const chip = (k, v, lbl) =>
       `<button class="chip" data-${k}="${v}" aria-pressed="${
@@ -784,7 +755,6 @@ class WatchlistCard extends HTMLElement {
   }
 
   _openDialog(html) {
-    this._stopRoll();
     const d = this._el.dlg;
     d.innerHTML = html;
     if (!d.open) d.showModal();
@@ -955,117 +925,6 @@ class WatchlistCard extends HTMLElement {
     setTimeout(() => { input.focus(); if (prefill) run(prefill); }, 60);
   }
 
-  /* ------------------------------------------------------- random pick */
-
-  _stopRoll() {
-    if (this._rollTimer) { clearTimeout(this._rollTimer); this._rollTimer = null; }
-  }
-
-  _rollFace(row) {
-    const meta = row.meta;
-    const title = esc(meta && meta.title ? meta.title : row.item.summary || "");
-    return meta && meta.poster
-      ? `<img src="${esc(img(meta.poster, "w342"))}" alt="">`
-      : `<div class="noart">${title}</div>`;
-  }
-
-  _rollLine(row) {
-    const m = row.meta || {};
-    return [
-      m.mt === "tv" ? "Series" : (m.mt === "movie" ? "Film" : ""),
-      m.year,
-      m.mt === "tv"
-        ? (m.seasons ? `${m.seasons} season${m.seasons > 1 ? "s" : ""}` : "")
-        : runtimeStr(m.runtime),
-      (m.genres || []).slice(0, 2).join(", "),
-      m.imdb_rating ? `IMDb ${m.imdb_rating}`
-        : (m.tmdb_rating ? `TMDB ${m.tmdb_rating}` : ""),
-    ].filter(Boolean).join(" · ");
-  }
-
-  /* Picks one of whatever the tabs, the type chips and the genre dropdown
-   * are currently showing, with a short roulette on the way there.       */
-  _openRandom() {
-    const shown = this._visible();
-    // titles that were never looked up have no poster, runtime or rating, so
-    // they make a poor "what shall we watch" answer — skip them if we can
-    const withMeta = shown.filter((r) => r.meta);
-    const pool = withMeta.length ? withMeta : shown;
-    if (!pool.length) {
-      this._toast(this._genre !== "all"
-        ? `Nothing tagged ${this._genre} to pick from.`
-        : "Nothing to pick from here.");
-      return;
-    }
-
-    let winner = pool[Math.floor(Math.random() * pool.length)];
-    if (pool.length > 1) {                       // don't repeat the last roll
-      for (let i = 0; i < 8 && winner.item.uid === this._lastRoll; i++) {
-        winner = pool[Math.floor(Math.random() * pool.length)];
-      }
-    }
-    this._lastRoll = winner.item.uid;
-
-    const scope = [
-      this._filter === "done" ? "watched" : (this._filter === "all" ? "everything" : ""),
-      this._type === "movie" ? "films" : (this._type === "tv" ? "series" : ""),
-      this._genre !== "all" ? this._genre : "",
-    ].filter(Boolean).join(" · ");
-
-    const d = this._openDialog(
-      '<div class="sheet"><button class="close">✕</button>' +
-      '<div class="body pad roll rolling">' +
-      `<p class="seclbl" id="rlbl">Picking from ${pool.length} title${
-        pool.length > 1 ? "s" : ""}${scope ? ` · ${esc(scope)}` : ""}</p>` +
-      '<div class="rollart" id="rart"></div>' +
-      '<div class="rolltitle" id="rtit">&nbsp;</div>' +
-      '<div class="rollsub" id="rsub">&nbsp;</div>' +
-      '<div class="acts" id="racts"></div>' +
-      "</div></div>"
-    );
-    const box = d.querySelector(".roll");
-    const art = d.querySelector("#rart");
-    const tit = d.querySelector("#rtit");
-
-    const paint = (row) => {
-      art.innerHTML = this._rollFace(row);
-      tit.textContent = (row.meta && row.meta.title) || row.item.summary || "";
-    };
-
-    const land = () => {
-      this._rollTimer = null;
-      box.classList.remove("rolling");
-      paint(winner);
-      d.querySelector("#rlbl").textContent = "Tonight’s pick";
-      d.querySelector("#rsub").textContent = this._rollLine(winner) || "";
-      d.querySelector("#racts").innerHTML =
-        '<button class="btn fill" id="rdet">Open details</button>' +
-        (pool.length > 1 ? '<button class="btn" id="ragain">Roll again</button>' : "");
-      const det = d.querySelector("#rdet");
-      if (det) det.onclick = () => this._openDetail(winner.item.uid);
-      const again = d.querySelector("#ragain");
-      if (again) again.onclick = () => this._openRandom();
-    };
-
-    const still = window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (pool.length === 1 || still) { land(); return; }
-
-    const seq = [];
-    const steps = 9 + Math.floor(Math.random() * 3);
-    for (let i = 0; i < steps; i++) {
-      seq.push(pool[Math.floor(Math.random() * pool.length)]);
-    }
-    let i = 0;
-    const tick = () => {
-      paint(seq[i]);
-      const delay = 62 + i * i * 4;             // eases out towards the end
-      i += 1;
-      this._rollTimer = setTimeout(i < seq.length ? tick : land, delay);
-    };
-    tick();
-  }
-
   /* ----------------------------------------------------------- actions */
 
   async _pick(hit, targetUid, res) {
@@ -1179,7 +1038,6 @@ const WL_SCHEMA = [
     name: "", type: "grid", schema: [
       { name: "show_watched_tab", selector: { boolean: {} } },
       { name: "show_genre_filter", selector: { boolean: {} } },
-      { name: "show_random_button", selector: { boolean: {} } },
       { name: "show_providers", selector: { boolean: {} } },
       { name: "rename_on_lookup", selector: { boolean: {} } },
     ],
@@ -1200,7 +1058,6 @@ const WL_LABELS = {
   default_sort: "Default sort",
   show_watched_tab: "Show 'Watched' tab",
   show_genre_filter: "Show genre dropdown",
-  show_random_button: "Show 'Surprise me' button",
   show_providers: "Show streaming providers",
   rename_on_lookup: "Use the official title",
 };
