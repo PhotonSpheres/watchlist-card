@@ -7,7 +7,7 @@
 A poster wall for Home Assistant, backed by the built-in **todo** integration.
 Films and shows with artwork, synopsis, IMDb / TMDB / Rotten Tomatoes ratings
 and "where to stream" — added by searching from inside the card, and filtered
-by genre.
+by genre. Can't decide what to watch? Press the dice.
 
 > This card was made with the help of AI. The idea was a simple yet good-looking
 > watchlist to use for my family.
@@ -135,6 +135,7 @@ language: en-US
 | `default_sort` | `added_desc` | `list`, `added_desc`, `rating_desc`, `year_desc`, `title_asc` |
 | `show_watched_tab` | `true` | Show the "Watched" tab |
 | `show_genre_filter` | `true` | Show the genre dropdown |
+| `show_random_button` | `true` | Show the 🎲 "surprise me" button |
 | `show_providers` | `true` | Show streaming services in the detail sheet |
 | `rename_on_lookup` | `true` | Replace a typed title with the official one |
 
@@ -151,6 +152,12 @@ language: en-US
   between *To watch* / *Watched* and *Movies* / *TV*. Genre names come from
   TMDB in the card's `language`; titles added under a different language keep
   their old genre names until you *Refresh data* on them.
+- **🎲 Surprise me** picks one title at random from whatever the tabs, the
+  type chips and the genre dropdown are currently showing — so "a comedy I
+  haven't watched yet" is three taps and a roll. Posters flick past for a
+  moment, it lands on one, and you can open it or roll again. It never picks
+  the same title twice in a row, skips titles that were never looked up, and
+  goes straight to the result if your device asks for reduced motion.
 - **Mark watched** sets the item to `completed`; it moves to the Watched tab
   rather than disappearing. Home Assistant keeps completed items until you
   clear them (`todo.remove_completed_items`).
