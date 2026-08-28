@@ -245,9 +245,13 @@ const WL_STYLE = `
   .chip[aria-pressed="true"] { background:var(--primary-color);
           color:var(--text-primary-color,#fff); }
   .spacer { flex:1; }
-  select.sort { font-family:inherit; font-size:13px; padding:5px 8px;
+  .sels { display:flex; align-items:center; gap:6px; margin-left:auto; }
+  .bar select { font-family:inherit; font-size:13px; padding:5px 8px;
           border-radius:8px; border:1px solid var(--divider-color);
-          background:var(--card-background-color); color:var(--primary-text-color); }
+          background:var(--card-background-color); color:var(--primary-text-color);
+          max-width:44vw; }
+  .bar select.genre[data-on="1"] { border-color:var(--primary-color);
+          color:var(--primary-color); }
 
   .grid { display:grid; gap:14px 12px;
           grid-template-columns:repeat(auto-fill,minmax(var(--wl-tile,116px),1fr)); }
@@ -429,6 +433,7 @@ class WatchlistCard extends HTMLElement {
       default_filter: "todo",
       default_sort: "added_desc",
       show_watched_tab: true,
+      show_genre_filter: true,
       show_providers: true,
       rename_on_lookup: true,
       ...config,
@@ -438,6 +443,7 @@ class WatchlistCard extends HTMLElement {
       ? this._config.default_filter : "todo";
     this._sort = SORTS[this._config.default_sort] ? this._config.default_sort : "added_desc";
     this._type = "all";
+    this._genre = "all";
     this._built = false;
     if (this.shadowRoot) this.shadowRoot.innerHTML = "";
     if (this._hass) { this._resubscribe(); this._build(); }
@@ -504,6 +510,11 @@ class WatchlistCard extends HTMLElement {
     if (this._filter === "todo") rows = rows.filter((r) => r.item.status !== "completed");
     else if (this._filter === "done") rows = rows.filter((r) => r.item.status === "completed");
     if (this._type !== "all") rows = rows.filter((r) => r.meta && r.meta.mt === this._type);
+    if (this._genre !== "all") {
+      const want = this._genre.toLowerCase();
+      rows = rows.filter((r) => r.meta && (r.meta.genres || [])
+        .some((g) => String(g).toLowerCase() === want));
+    }
     if (cfg.media_types.length === 1) {
       rows = rows.filter((r) => !r.meta || r.meta.mt === cfg.media_types[0]);
     }
@@ -521,6 +532,31 @@ class WatchlistCard extends HTMLElement {
     const s = sorters[this._sort];
     if (s) rows = rows.slice().sort(s);
     return rows;
+  }
+
+  /* Genres found on the items the *other* filters let through, so the
+   * dropdown only ever offers something that would really show up.
+   * Genre names come from TMDB in the configured language.               */
+  _genreOptions() {
+    const cfg = this._config;
+    const found = new Map();                       // lower-case key -> label
+    for (const item of this._items || []) {
+      if (this._filter === "todo" && item.status === "completed") continue;
+      if (this._filter === "done" && item.status !== "completed") continue;
+      const meta = decodeMeta(item.description);
+      if (!meta) continue;
+      if (this._type !== "all" && meta.mt !== this._type) continue;
+      if (cfg.media_types.length === 1 && meta.mt !== cfg.media_types[0]) continue;
+      for (const g of meta.genres || []) {
+        const label = String(g).trim();
+        if (label) found.set(label.toLowerCase(), label);
+      }
+    }
+    // keep the active genre selectable even when nothing matches it now
+    if (this._genre !== "all" && !found.has(this._genre.toLowerCase())) {
+      found.set(this._genre.toLowerCase(), this._genre);
+    }
+    return Array.from(found.values()).sort((a, b) => a.localeCompare(b));
   }
 
   /* ------------------------------------------------------------ chrome */
@@ -585,6 +621,7 @@ class WatchlistCard extends HTMLElement {
       `${open.length} to watch`,
       done.length ? `${done.length} watched` : "",
       mins ? bulkRuntime(mins) : "",
+      this._genre !== "all" ? `${this._visible().length} in ${this._genre}` : "",
     ].filter(Boolean).join(" · ");
 
     this._el.head.innerHTML =
@@ -605,13 +642,28 @@ class WatchlistCard extends HTMLElement {
       bar += '<span style="width:8px"></span>' +
         chip("type", "all", "Any") + chip("type", "movie", "Movies") + chip("type", "tv", "TV");
     }
-    bar += '<span class="spacer"></span><select class="sort">' +
+    bar += '<span class="sels">';
+    if (this._config.show_genre_filter) {
+      const genres = this._genreOptions();
+      const active = this._genre.toLowerCase();
+      bar += `<select class="genre" aria-label="Genre"${this._genre !== "all" ? ' data-on="1"' : ""}>` +
+        `<option value="all"${this._genre === "all" ? " selected" : ""}>All genres</option>` +
+        genres.map((g) =>
+          `<option value="${esc(g)}"${g.toLowerCase() === active ? " selected" : ""}>${esc(g)}</option>`
+        ).join("") + "</select>";
+    }
+    bar += '<select class="sort" aria-label="Sort">' +
       Object.entries(SORTS).map(([k, v]) =>
         `<option value="${k}"${k === this._sort ? " selected" : ""}>${esc(v.label)}</option>`
-      ).join("") + "</select>";
+      ).join("") + "</select></span>";
     this._el.bar.innerHTML = bar;
     this._el.bar.querySelector(".sort").onchange = (ev) => {
       this._sort = ev.target.value; this._renderGrid();
+    };
+    const gsel = this._el.bar.querySelector(".genre");
+    if (gsel) gsel.onchange = (ev) => {
+      this._genre = ev.target.value;
+      this._renderHead(); this._renderGrid();
     };
   }
 
@@ -639,6 +691,15 @@ class WatchlistCard extends HTMLElement {
     const rows = this._visible();
     if (!rows.length) {
       g.style.display = "block";
+      if (this._genre !== "all") {
+        g.innerHTML =
+          `<div class="empty">Nothing tagged <b>${esc(this._genre)}</b> in this tab.` +
+          '<br><br><button class="btn" id="clrgenre">Show all genres</button></div>';
+        g.querySelector("#clrgenre").onclick = () => {
+          this._genre = "all"; this._renderHead(); this._renderGrid();
+        };
+        return;
+      }
       g.innerHTML =
         '<div class="empty">' +
         (this._filter === "done" ? "Nothing watched yet."
@@ -976,6 +1037,7 @@ const WL_SCHEMA = [
   {
     name: "", type: "grid", schema: [
       { name: "show_watched_tab", selector: { boolean: {} } },
+      { name: "show_genre_filter", selector: { boolean: {} } },
       { name: "show_providers", selector: { boolean: {} } },
       { name: "rename_on_lookup", selector: { boolean: {} } },
     ],
@@ -995,6 +1057,7 @@ const WL_LABELS = {
   default_filter: "Default tab",
   default_sort: "Default sort",
   show_watched_tab: "Show 'Watched' tab",
+  show_genre_filter: "Show genre dropdown",
   show_providers: "Show streaming providers",
   rename_on_lookup: "Use the official title",
 };
